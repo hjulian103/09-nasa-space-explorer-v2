@@ -2,11 +2,35 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
+  <!-- Point to a valid web app manifest (must be a JSON object). We use a local manifest.json. -->
+  <!-- Use a relative manifest path so the manifest is requested from the same origin/subpath as the page. -->
+  <link rel="manifest" href="manifest.json" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>NASA Space Explorer</title>
   <link href="style.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
+  <!-- SVG templates (hidden) -->
+  <div id="svg-templates" aria-hidden="true" style="display:none;">
+    <svg id="loader-svg" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+      <defs>
+        <filter id="SVGp0LL3caJ">
+          <feGaussianBlur in="SourceGraphic" result="y" stdDeviation="1" />
+          <feColorMatrix in="y" result="z" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 18 -7" />
+          <feBlend in="SourceGraphic" in2="z" />
+        </filter>
+      </defs>
+      <g filter="url(#SVGp0LL3caJ)">
+        <circle cx="5" cy="12" r="4" fill="currentColor">
+          <animate attributeName="cx" calcMode="spline" dur="2s" keySplines=".36,.62,.43,.99;.79,0,.58,.57" repeatCount="indefinite" values="5;8;5" />
+        </circle>
+        <circle cx="19" cy="12" r="4" fill="currentColor">
+          <animate attributeName="cx" calcMode="spline" dur="2s" keySplines=".36,.62,.43,.99;.79,0,.58,.57" repeatCount="indefinite" values="19;16;19" />
+        </circle>
+        <animateTransform attributeName="transform" dur="0.75s" repeatCount="indefinite" type="rotate" values="0 12 12;360 12 12" />
+      </g>
+    </svg>
+  </div>
   <div class="container">
     <header class="site-header">
       <img src="img/nasa-worm-logo.png" alt="NASA Logo" class="logo" />

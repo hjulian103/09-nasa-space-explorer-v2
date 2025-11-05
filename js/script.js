@@ -30,8 +30,233 @@ function shuffleArray(arr) {
 	return a;
 }
 
-function createShuffledIndexQueue(n) {
-	return shuffleArray(Array.from({ length: n }, (_, i) => i));
+/* ------------------ Did You Know facts ------------------ */
+const spaceFacts = [
+	'Venus rotates in the opposite direction to most planets — its day is longer than its year.',
+	'A teaspoon of neutron star would weigh about 6 billion tons on Earth.',
+	'There are more trees on Earth than stars in the Milky Way (by current estimates).',
+	'Saturn could float in water — it is mostly made of gas and has a low average density.',
+	'The footprints on the Moon will likely remain for millions of years because the Moon has no atmosphere.',
+	'A day on Jupiter lasts about 10 hours — it spins very quickly for its size.',
+	'The largest volcano in the solar system is Olympus Mons on Mars — it is nearly three times the height of Everest.',
+	'Space is not completely empty; it contains tiny amounts of dust, gas, and cosmic rays called the interstellar medium.'
+];
+
+let _currentFactIndex = -1;
+let _currentEmoji = '';
+// palette mapping emoji -> color (hex)
+const emojiPalette = [
+	{ emoji: '🪐', color: '#9fe8ff' },
+	{ emoji: '🌕', color: '#ffd97a' },
+	{ emoji: '🚀', color: '#ffb3b3' },
+	{ emoji: '✨', color: '#d1b3ff' },
+	{ emoji: '☄️', color: '#ffcc9e' },
+	{ emoji: '🛰️', color: '#b3fff0' },
+	{ emoji: '🔭', color: '#9fd1ff' },
+	{ emoji: '⭐', color: '#fff49e' }
+];
+
+function hexToRgb(hex) {
+	const h = hex.replace('#', '').trim();
+	const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+	const bigint = parseInt(full, 16);
+	const r = (bigint >> 16) & 255;
+	const g = (bigint >> 8) & 255;
+	const b = bigint & 255;
+	return [r, g, b];
+}
+
+function rgbaFromHex(hex, alpha) {
+	const [r, g, b] = hexToRgb(hex);
+	return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function showRandomFact(forceNew = false) {
+	const container = document.getElementById('did-you-know');
+	if (!container) return;
+	const factEl = container.querySelector('.fact') || document.createElement('div');
+
+	// pick an index; avoid repeating the same index when forceNew is true
+	if (spaceFacts.length === 0) return;
+	let idx = Math.floor(Math.random() * spaceFacts.length);
+	if (forceNew && spaceFacts.length > 1) {
+		// try a few times to get a different index
+		let attempts = 0;
+		while (idx === _currentFactIndex && attempts < 6) {
+			idx = Math.floor(Math.random() * spaceFacts.length);
+			attempts += 1;
+		}
+		if (idx === _currentFactIndex) {
+			// final fallback: pick the next one
+			idx = (_currentFactIndex + 1) % spaceFacts.length;
+		}
+	}
+
+	_currentFactIndex = idx;
+	factEl.className = 'fact';
+
+	// pick an emoji-theme and set it on the container so CSS pseudo-element + color updates
+	if (container) {
+		let eIdx = Math.floor(Math.random() * emojiPalette.length);
+		if (forceNew && emojiPalette.length > 1) {
+			let attempts = 0;
+			while (emojiPalette[eIdx].emoji === _currentEmoji && attempts < 6) {
+				eIdx = Math.floor(Math.random() * emojiPalette.length);
+				attempts += 1;
+			}
+			if (emojiPalette[eIdx].emoji === _currentEmoji) {
+				const curIdx = emojiPalette.findIndex(p => p.emoji === _currentEmoji);
+				eIdx = (curIdx + 1) % emojiPalette.length;
+			}
+		}
+		const pick = emojiPalette[eIdx];
+		_currentEmoji = pick.emoji;
+		container.dataset.emoji = _currentEmoji;
+		// set CSS vars for the shimmer colors (light and strong)
+		try {
+			container.style.setProperty('--dyk-glow', rgbaFromHex(pick.color, 0.08));
+			container.style.setProperty('--dyk-glow-strong', rgbaFromHex(pick.color, 0.22));
+			// base tint used for smooth cross-fade behind the button
+			container.style.setProperty('--dyk-base', rgbaFromHex(pick.color, 0.12));
+		} catch (e) { /* ignore */ }
+	}
+
+	// small visual refresh: remove and re-add fade-in for animation
+	try {
+		factEl.classList.remove('fade-in');
+		// force reflow
+		void factEl.offsetWidth;
+		factEl.textContent = spaceFacts[idx];
+		factEl.classList.add('fade-in');
+	} catch (e) {
+		factEl.textContent = spaceFacts[idx];
+	}
+
+	// replace or append
+	if (!container.contains(factEl)) container.appendChild(factEl);
+}
+
+// show a random fact once on load
+try { showRandomFact(); } catch (e) { /* ignore */ }
+
+// wire up New Fact button
+try {
+	const btn = document.getElementById('newFactBtn');
+	if (btn) btn.addEventListener('click', () => showRandomFact(true));
+} catch (e) { /* ignore */ }
+
+// create a shuffled queue of indices [0..n-1]
+// optional `avoidIndex` will ensure the first item is not that value (swap if needed)
+function createShuffledIndexQueue(n, avoidIndex) {
+	const arr = shuffleArray(Array.from({ length: n }, (_, i) => i));
+	if (typeof avoidIndex === 'number' && n > 1 && arr[0] === avoidIndex) {
+		// swap first element with a random later element to avoid immediate repeat
+		const swapWith = 1 + Math.floor(Math.random() * (n - 1));
+		[arr[0], arr[swapWith]] = [arr[swapWith], arr[0]];
+	}
+	return arr;
+}
+
+// navigate to the previous item in single view
+function prevShuffled() {
+	if (!allItems || allItems.length === 0) return;
+	singleViewCurrent = (singleViewCurrent - 1 + allItems.length) % allItems.length;
+	renderSingleCard(singleViewCurrent);
+}
+
+// Touch / gesture helpers: attach tap/double-tap and swipe handlers for touch devices
+function addTouchHandlers(node, index, item) {
+	try {
+		const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints && navigator.msMaxTouchPoints > 0);
+		if (!isTouch || !node) return;
+
+		let startX = 0, startY = 0, startT = 0, moved = false;
+		let lastTap = 0;
+		const SWIPE_THRESHOLD = 40; // px
+		const TAP_MOVE_LIMIT = 10; // px
+
+		function handleTap() {
+			// open lightbox for this index (same as click)
+			openLightbox(index);
+		}
+
+		function handleDoubleTap(el) {
+			// Toggle play/pause for videos, or fullscreen for images
+			const vid = el.tagName && el.tagName.toLowerCase() === 'video' ? el : el.querySelector && el.querySelector('video');
+			if (vid) {
+				try {
+					if (vid.paused) vid.play(); else vid.pause();
+				} catch (e) { /* ignore */ }
+				return;
+			}
+			// try YT player inside container
+			const ytContain = el.closest && el.closest('.youtube-player-container') || el.querySelector && el.querySelector('.youtube-player-container');
+			if (ytContain && ytContain._ytPlayerInstance) {
+				try {
+					const state = ytContain._ytPlayerInstance.getPlayerState && ytContain._ytPlayerInstance.getPlayerState();
+					// 1 = playing, 2 = paused
+					if (state === 1) ytContain._ytPlayerInstance.pauseVideo(); else ytContain._ytPlayerInstance.playVideo();
+				} catch (e) { /* ignore */ }
+				return;
+			}
+			// fallback: toggle fullscreen for images
+			const img = el.tagName && el.tagName.toLowerCase() === 'img' ? el : el.querySelector && el.querySelector('img');
+			if (img && img.requestFullscreen) {
+				try { img.requestFullscreen(); } catch (e) { /* ignore */ }
+			}
+		}
+
+		function handleSwipeLeft() {
+			// move forward
+			if (currentLightbox) nextShuffled(); else nextShuffled();
+		}
+
+		function handleSwipeRight() {
+			// move backward
+			if (currentLightbox) prevShuffled(); else prevShuffled();
+		}
+
+		function onTouchStart(e) {
+			const p = e.touches ? e.touches[0] : e;
+			startX = p.clientX; startY = p.clientY; startT = Date.now(); moved = false;
+		}
+
+		function onTouchMove(e) {
+			const p = e.touches ? e.touches[0] : e;
+			if (Math.abs(p.clientX - startX) > TAP_MOVE_LIMIT || Math.abs(p.clientY - startY) > TAP_MOVE_LIMIT) moved = true;
+		}
+
+		function onTouchEnd(e) {
+			const p = (e.changedTouches && e.changedTouches[0]) || e;
+			const dx = p.clientX - startX; const dy = p.clientY - startY; const dt = Date.now() - startT;
+			if (!moved && Math.abs(dx) < TAP_MOVE_LIMIT && Math.abs(dy) < TAP_MOVE_LIMIT) {
+				const now = Date.now();
+				if (now - lastTap <= 300) {
+					// double-tap
+					lastTap = 0;
+					handleDoubleTap(node);
+				} else {
+					lastTap = now;
+					// defer single tap slightly to allow double-tap detection
+					setTimeout(() => {
+						if (Date.now() - lastTap >= 300) {
+							handleTap(); lastTap = 0;
+						}
+					}, 320);
+				}
+				return;
+			}
+
+			// horizontal swipe
+			if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > SWIPE_THRESHOLD) {
+				if (dx < 0) handleSwipeLeft(); else handleSwipeRight();
+			}
+		}
+
+		node.addEventListener('touchstart', onTouchStart, { passive: true });
+		node.addEventListener('touchmove', onTouchMove, { passive: true });
+		node.addEventListener('touchend', onTouchEnd, { passive: true });
+	} catch (e) { /* ignore touch attach errors */ }
 }
 
 // YouTube helper: extract 11-char id from common URL forms
@@ -264,6 +489,9 @@ function renderSingleCard(index) {
 			node.style.cursor = 'zoom-in';
 			node.addEventListener('click', (ev) => { ev.stopPropagation(); openLightbox(index); });
 		}
+
+		// Attach touch handlers for better mobile gestures (tap/double-tap/swipe)
+		try { addTouchHandlers(node, index, item); } catch (e) { /* ignore */ }
 	});
 
 	cardWrap.appendChild(card);
@@ -279,7 +507,7 @@ function showSingleView(startIndex) {
 
 function nextShuffled() {
 	if (!allItems || allItems.length === 0) return;
-	if (singleViewQueue.length === 0) singleViewQueue = createShuffledIndexQueue(allItems.length);
+	if (singleViewQueue.length === 0) singleViewQueue = createShuffledIndexQueue(allItems.length, singleViewCurrent);
 	const next = singleViewQueue.shift();
 	if (typeof next === 'number') { singleViewCurrent = next; renderSingleCard(singleViewCurrent); }
 }
@@ -348,6 +576,9 @@ function openLightbox(index) {
 	}
 
 	content.appendChild(media);
+
+	// Attach touch handlers to the media inside the lightbox so users can swipe or double-tap
+	try { addTouchHandlers(media, index, item); } catch (e) { /* ignore */ }
 	// caption
 	if (item.title || item.date || item.explanation) {
 		const cap = el('div', 'lightbox-caption');

@@ -12,6 +12,19 @@ body {
   padding: 20px;
 }
 
+/* Theme variables (easy to customize) */
+:root {
+  /* primary gradient for the Fetch button */
+  --primary-1: #0066ff;
+  --primary-2: #00d4ff;
+
+  /* defaults for Did-You-Know shimmer (overridden by JS when facts change) */
+  --dyk-accent: #9fe8ff;
+  --dyk-glow: rgba(159,232,255,0.06);
+  --dyk-glow-strong: rgba(159,232,255,0.22);
+  --dyk-base: rgba(159,232,255,0.08);
+}
+
 /* Centered container */
 .container {
   max-width: 1200px;
@@ -91,6 +104,45 @@ button:hover {
   background-color: #bfbfbf;
 }
 
+/* Primary fetch button styling */
+#getImageBtn {
+  display: inline-block;
+  background: linear-gradient(135deg, var(--primary-1), var(--primary-2));
+  color: #fff;
+  border: 0;
+  padding: 12px 18px;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 12px;
+  box-shadow: 0 10px 26px rgba(3,102,255,0.18), 0 2px 6px rgba(0,0,0,0.12);
+  cursor: pointer;
+  transition: transform 180ms cubic-bezier(.2,.9,.3,1), box-shadow 180ms ease, filter 180ms ease;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.2);
+}
+#getImageBtn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 40px rgba(3,102,255,0.22), 0 6px 12px rgba(0,0,0,0.12);
+  filter: saturate(1.06) brightness(1.03);
+}
+#getImageBtn:active {
+  transform: translateY(0);
+  box-shadow: 0 6px 18px rgba(3,102,255,0.14);
+}
+#getImageBtn:focus-visible {
+  outline: none;
+  box-shadow: 0 18px 40px rgba(3,102,255,0.22), 0 0 0 4px rgba(0,210,255,0.12);
+}
+
+@media (max-width: 420px) {
+  #getImageBtn {
+    padding: 10px 14px;
+    font-size: 15px;
+    border-radius: 10px;
+    width: 100%;
+    text-align: center;
+  }
+}
+
 /* Stack horizontally on wider screens */
 @media (min-width: 600px) {
   .filters {
@@ -136,7 +188,10 @@ button:hover {
 
 .gallery-item img {
   width: 100%;
-  height: 200px;
+  /* use aspect-ratio instead of a fixed height so thumbnails scale on narrow screens */
+  aspect-ratio: 16 / 9;
+  height: auto;
+  max-height: 320px;
   object-fit: cover;
   border-radius: 4px;
 }
@@ -211,6 +266,23 @@ button:hover {
   object-fit: cover;
   display: block;
   transition: transform 240ms ease, filter 240ms ease;
+}
+
+/* smooth hover scale for gallery images (only on hover-capable devices) */
+@media (hover: hover) {
+  .card .card-media img,
+  .gallery-item img,
+  .video-thumb-wrap img.video-thumb {
+    transition: transform 260ms cubic-bezier(.2,.9,.3,1), filter 260ms ease;
+    will-change: transform;
+  }
+
+  .card:hover .card-media img,
+  .gallery-item:hover img,
+  .video-thumb-wrap:hover img.video-thumb {
+    transform: scale(1.04);
+    filter: saturate(1.06) contrast(1.02);
+  }
 }
 
 /* big circular play overlay centered on the thumbnail */
@@ -483,6 +555,134 @@ button:hover {
   cursor: default;
 }
 
+/* Did-you-know block */
+.did-you-know {
+  --dyk-accent: #9fe8ff;
+  background: linear-gradient(180deg, #041024 0%, #07203a 100%);
+  color: #e6f7ff;
+  padding: 14px 18px;
+  border-radius: 10px;
+  margin: 14px 0;
+  box-shadow: 0 8px 22px rgba(2,6,23,0.45);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  border-left: 4px solid var(--dyk-accent);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+.did-you-know:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(2,6,23,0.6);
+}
+.did-you-know::before {
+  /* show emoji from data-emoji attribute so JS can change it when facts update */
+  content: attr(data-emoji);
+  font-size: 26px;
+  line-height: 1;
+  margin-right: 6px;
+  display: inline-block;
+}
+.did-you-know .fact {
+  font-size: 15px;
+  line-height: 1.35;
+}
+.did-you-know strong {
+  color: var(--dyk-accent);
+  font-weight: 700;
+  min-width: 96px;
+}
+
+@media (max-width: 420px) {
+  .did-you-know {
+    padding: 10px 12px;
+  }
+  .did-you-know::before { font-size: 20px; }
+  .did-you-know .fact { font-size: 14px; }
+  .did-you-know strong { min-width: 70px; }
+}
+
+/* New fact button */
+.new-fact-btn {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid rgba(159,232,255,0.18);
+  color: var(--dyk-accent);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+.new-fact-btn:hover {
+  background: rgba(159,232,255,0.06);
+  transform: translateY(-2px);
+  /* soft drop shadow plus accent glow (base) */
+  box-shadow: 0 6px 18px rgba(9,29,44,0.35), 0 0 12px rgba(159,232,255,0.12);
+}
+.new-fact-btn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 420px) {
+  .new-fact-btn { padding: 6px 8px; font-size: 13px; }
+}
+
+/* accessible focus glow for keyboard users */
+.new-fact-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 8px 24px rgba(9,29,44,0.35), 0 0 22px rgba(159,232,255,0.22);
+  transform: translateY(-2px);
+}
+
+/* animated shimmer/glow behind the button */
+.new-fact-btn {
+  position: relative;
+  z-index: 2; /* above pseudo elements */
+  overflow: visible;
+}
+.new-fact-btn::before {
+  content: "";
+  position: absolute;
+  inset: -6px; /* expand behind the button */
+  border-radius: 8px;
+  /* use CSS variables set from JS to vary the shimmer color per fact */
+  background: linear-gradient(90deg,
+    transparent 0%,
+    var(--dyk-glow, rgba(159,232,255,0.06)) 20%,
+    var(--dyk-glow-strong, rgba(159,232,255,0.22)) 50%,
+    var(--dyk-glow, rgba(159,232,255,0.06)) 80%,
+    transparent 100%
+  );
+  filter: blur(10px);
+  opacity: 0;
+  transition: opacity 220ms ease, transform 220ms ease;
+  z-index: 0;
+  background-size: 200% 100%;
+}
+.new-fact-btn::after {
+  /* solid blurred color that will smoothly transition when CSS var changes */
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 10px;
+  background-color: var(--dyk-base, rgba(159,232,255,0.08));
+  filter: blur(12px);
+  opacity: 0.9;
+  z-index:  -1;
+  transition: background-color 420ms ease, opacity 160ms ease;
+}
+.new-fact-btn:hover::before,
+.new-fact-btn:focus-visible::before {
+  opacity: 1;
+  animation: shimmer 2.2s linear infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
 /* Responsive tweaks: small phones (cellular) */
 @media (max-width: 420px) {
   body {
@@ -533,6 +733,69 @@ button:hover {
   }
   .single-card-wrap {
     max-width: 360px;
+  }
+}
+
+/* Additional mobile-focused adjustments for small and narrow devices */
+@media (max-width: 520px) {
+  /* use a single-column flow so cards are full-width and easier to tap */
+  .gallery {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 12px;
+    justify-items: stretch;
+  }
+
+  .gallery-item {
+    min-width: 0;
+    max-width: 100%;
+    padding: 8px;
+  }
+
+  /* make card media a bit taller and prioritize showing the full media on small screens */
+  .card .card-media {
+    aspect-ratio: 4 / 3;
+    max-height: 340px;
+  }
+
+  /* avoid extreme cropping in the lightbox on small devices: contain the image/video so users can see the whole media */
+  .lightbox-content img,
+  .lightbox-content video,
+  .youtube-player-container {
+    object-fit: contain;
+    height: auto;
+    max-height: 68vh;
+    width: 100%;
+  }
+
+  .lightbox-media {
+    padding: 8px 6px;
+    min-height: 180px;
+  }
+
+  /* slightly reduce play overlay but keep it large enough for touch */
+  .play-overlay {
+    width: 56px;
+    height: 56px;
+    font-size: 18px;
+  }
+
+  /* make close button easier to tap */
+  .lightbox-close {
+    padding: 10px 12px;
+    font-size: 15px;
+    top: 8px;
+    right: 8px;
+  }
+
+  .new-fact-btn {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+
+  .single-card-wrap {
+    max-width: 420px;
   }
 }
 
